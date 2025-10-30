@@ -22,17 +22,16 @@ interface TaskCardProps {
 }
 
 export default function TaskCard({ task }: TaskCardProps) {
-  const firestore = useFirestore();
+  // Mock user data for demo
+  const mockUsers: Record<string, { name: string; id: string }> = {
+    'user_partner_1': { name: 'Brenda Smith', id: 'user_partner_1' },
+    'user_staff_1': { name: 'John Doe', id: 'user_staff_1' },
+    'user_partner_2': { name: 'Carlos Garcia', id: 'user_partner_2' },
+    'user_admin': { name: 'Admin', id: 'user_admin' },
+  };
 
-  const assignedToUserRef = useMemo(() => {
-    if (!task.assignedTo) return null;
-    return doc(firestore, 'users', task.assignedTo);
-  }, [firestore, task.assignedTo]);
-
-  const { data: assignedToUser } = useDoc<User>(assignedToUserRef);
-
+  const assignedToUser = task.assignedTo ? mockUsers[task.assignedTo] : null;
   const lastActivity = task.log?.length > 0 ? task.log[task.log.length - 1].timestamp : (task.createdAt?.toDate() || Date.now());
-
   const userImage = PlaceHolderImages.find(img => img.id === assignedToUser?.id)?.imageUrl;
 
   return (

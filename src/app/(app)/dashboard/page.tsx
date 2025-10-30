@@ -5,10 +5,10 @@ import { useUser } from '@/firebase';
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
 
-  // Debug mode - show dashboard even without authentication
-  const debugMode = true;
+  // Skip authentication entirely for now
+  const skipAuth = true;
 
-  if (isUserLoading && !debugMode) {
+  if (isUserLoading && !skipAuth) {
     return (
         <div className="container mx-auto">
             <div className="animate-pulse">
@@ -24,7 +24,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user && !debugMode) {
+  if (!user && !skipAuth) {
     return (
         <div className="container mx-auto text-center">
             <p>Please log in to see your dashboard.</p>
@@ -32,13 +32,13 @@ export default function DashboardPage() {
     )
   }
 
-  const userIdForDemo = user?.uid || 'demo-user-id';
+  const userIdForDemo = user?.uid || 'mock-admin-user';
 
   return (
     <div className="container mx-auto">
-      {debugMode && !user && (
+      {skipAuth && !user && (
         <div className="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded-lg">
-          <p className="text-yellow-800">🐛 Debug Mode: Running without authentication</p>
+          <p className="text-yellow-800">� Auth Disabled: Demo mode - using mock data</p>
         </div>
       )}
       <FocusInbox userId={userIdForDemo} />

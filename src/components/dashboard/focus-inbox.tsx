@@ -1,89 +1,92 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { prioritizeFocusInbox } from '@/ai/flows/focus-inbox-prioritization';
 import TaskCard from '../tasks/task-card';
-import { useFirestore } from '@/firebase';
-import { collectionGroup, getDocs, query, where } from 'firebase/firestore';
 import type { Task } from '@/lib/types';
 
-async function getFocusInboxItems(firestore: any, userId: string) {
-    const pendingReviewQuery = query(
-        collectionGroup(firestore, 'tasks'),
-        where('status', '==', 'pending_review'),
-        where('assignedBy', '==', userId)
-    );
+// Mock data for demo purposes
+const mockTasks: Task[] = [
+  {
+    id: 'task-1',
+    taskId: 'task-1',
+    title: 'Review Q4 Budget Proposal',
+    description: 'Review and approve the quarterly budget proposal for the cabinet business unit.',
+    circleId: 'circle_1',
+    media: [],
+    assignedBy: 'user_admin',
+    assignedTo: 'user_partner_1',
+    status: 'pending_review',
+    createdAt: { toDate: () => new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) } as any,
+    log: [
+      {
+        timestamp: Date.now() - 2 * 24 * 60 * 60 * 1000,
+        action: 'created',
+        from: 'user_admin',
+      },
+    ],
+  },
+  {
+    id: 'task-2',
+    taskId: 'task-2',
+    title: 'Update CNC Machine Settings',
+    description: 'Calibrate and update the CNC machine settings for the new cabinet door patterns.',
+    circleId: 'circle_1',
+    media: [],
+    assignedBy: 'user_admin',
+    assignedTo: 'user_staff_1',
+    status: 'overdue',
+    createdAt: { toDate: () => new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) } as any,
+    log: [
+      {
+        timestamp: Date.now() - 5 * 24 * 60 * 60 * 1000,
+        action: 'created',
+        from: 'user_admin',
+      },
+    ],
+  },
+  {
+    id: 'task-3',
+    taskId: 'task-3',
+    title: 'Payment Gateway Integration',
+    description: 'Integrate Stripe payment gateway for the new FinTech client portal.',
+    circleId: 'circle_2',
+    media: [],
+    assignedBy: 'user_admin',
+    assignedTo: 'user_partner_2',
+    status: 'pending_acceptance',
+    createdAt: { toDate: () => new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) } as any,
+    log: [
+      {
+        timestamp: Date.now() - 1 * 24 * 60 * 60 * 1000,
+        action: 'created',
+        from: 'user_admin',
+      },
+    ],
+  },
+];
 
-    const overdueQuery = query(
-        collectionGroup(firestore, 'tasks'),
-        where('status', '==', 'overdue'),
-         where('assignedTo', '==', userId)
-    );
-    
-    const pendingAcceptanceQuery = query(
-        collectionGroup(firestore, 'tasks'),
-        where('status', '==', 'pending_acceptance'),
-        where('assignedTo', '==', userId)
-    );
-
-
-    const [pendingReviewSnapshot, overdueSnapshot, pendingAcceptanceSnapshot] = await Promise.all([
-        getDocs(pendingReviewQuery),
-        getDocs(overdueQuery),
-        getDocs(pendingAcceptanceQuery)
-    ]);
-
-    const pendingReviewTasks = pendingReviewSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
-    const overdueTasks = overdueSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
-    const pendingAcceptanceTasks = pendingAcceptanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
-    
-    // In a real app, you would also fetch other items like alerts, suggestions, etc.
-    const allTasks = [...pendingReviewTasks, ...overdueTasks, ...pendingAcceptanceTasks];
-
-    if (allTasks.length === 0) {
-        return [];
-    }
-    
-    // Use AI prioritization with fallback
-    try {
-        const { prioritizedItems } = await prioritizeFocusInbox({
-            pendingApprovals: pendingReviewTasks.map(t => t.id),
-            aiIdentifiedBottlenecks: [], // This would come from another AI flow
-            changeRequests: [],
-            failureToReachAlerts: [],
-            aiSuggestions: [],
-        });
-
-        // Create a map for quick lookups
-        const taskMap = new Map(allTasks.map(task => [task.id, task]));
-
-        // Sort the original tasks array based on the prioritized list
-        const sortedTasks = prioritizedItems.map((id: string) => taskMap.get(id)).filter((task: Task | undefined): task is Task => !!task);
-        
-        // Add any tasks that were not in the prioritized list to the end
-        const unprioritizedTasks = allTasks.filter(task => !prioritizedItems.includes(task.id));
-
-        return [...sortedTasks, ...unprioritizedTasks];
-    } catch (error) {
-        console.warn('AI prioritization failed, falling back to simple sort:', error);
-        // Return tasks sorted by creation date if AI fails
-        return allTasks.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
-    }
+async function getFocusInboxItems(userId: string): Promise<Task[]> {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  // Return mock tasks that need admin attention
+  return mockTasks.filter(task => 
+    task.status === 'pending_review' || 
+    task.status === 'overdue' || 
+    task.status === 'pending_acceptance'
+  );
 }
 
 
 export default function FocusInbox({ userId }: { userId: string}) {
-  const firestore = useFirestore();
   const [prioritizedItems, setPrioritizedItems] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadFocusInboxItems() {
-      if (!firestore || !userId) return;
-      
       try {
         setIsLoading(true);
-        const items = await getFocusInboxItems(firestore, userId);
+        const items = await getFocusInboxItems(userId);
         setPrioritizedItems(items);
       } catch (error) {
         console.error('Error loading focus inbox items:', error);
@@ -94,7 +97,7 @@ export default function FocusInbox({ userId }: { userId: string}) {
     }
 
     loadFocusInboxItems();
-  }, [firestore, userId]);
+  }, [userId]);
 
   if (isLoading) {
     return (
