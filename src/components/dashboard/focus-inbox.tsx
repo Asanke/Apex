@@ -1,26 +1,75 @@
-import { mockFocusInboxItems } from '@/lib/data';
+'use server';
+
 import { prioritizeFocusInbox } from '@/ai/flows/focus-inbox-prioritization';
 import TaskCard from '../tasks/task-card';
+import { initializeFirebase } from '@/firebase';
+import { collectionGroup, getDocs, query, where } from 'firebase/firestore';
+import type { Task } from '@/lib/types';
+import { get } from 'http';
 
-export default async function FocusInbox() {
-  // In a real application, you would fetch these from your database
-  const pendingApprovals = ['task_1'];
-  const aiIdentifiedBottlenecks = ['task_2'];
-  const changeRequests: string[] = [];
-  const failureToReachAlerts = ['user_staff_1'];
-  const aiSuggestions = ['task_2'];
+async function getFocusInboxItems(userId: string) {
+    const { firestore } = initializeFirebase();
 
-  // This would be an API call to a server action/route that runs the Genkit flow
-  // const { prioritizedItems } = await prioritizeFocusInbox({
-  //   pendingApprovals,
-  //   aiIdentifiedBottlenecks,
-  //   changeRequests,
-  //   failureToReachAlerts,
-  //   aiSuggestions,
-  // });
+    const pendingReviewQuery = query(
+        collectionGroup(firestore, 'tasks'),
+        where('status', '==', 'pending_review'),
+        where('assignedBy', '==', userId)
+    );
 
-  // For now, we use the mock data directly.
-  const prioritizedItems = mockFocusInboxItems;
+    const overdueQuery = query(
+        collectionGroup(firestore, 'tasks'),
+        where('status', '==', 'overdue'),
+         where('assignedTo', '==', userId)
+    );
+    
+    const pendingAcceptanceQuery = query(
+        collectionGroup(firestore, 'tasks'),
+        where('status', '==', 'pending_acceptance'),
+        where('assignedTo', '==', userId)
+    );
+
+
+    const [pendingReviewSnapshot, overdueSnapshot, pendingAcceptanceSnapshot] = await Promise.all([
+        getDocs(pendingReviewQuery),
+        getDocs(overdueQuery),
+        getDocs(pendingAcceptanceQuery)
+    ]);
+
+    const pendingReviewTasks = pendingReviewSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+    const overdueTasks = overdueSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+    const pendingAcceptanceTasks = pendingAcceptanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+    
+    // In a real app, you would also fetch other items like alerts, suggestions, etc.
+    const allTasks = [...pendingReviewTasks, ...overdueTasks, ...pendingAcceptanceTasks];
+
+    if (allTasks.length === 0) {
+        return [];
+    }
+    
+    const { prioritizedItems } = await prioritizeFocusInbox({
+        pendingApprovals: pendingReviewTasks.map(t => t.id),
+        aiIdentifiedBottlenecks: [], // This would come from another AI flow
+        changeRequests: [],
+        failureToReachAlerts: [],
+        aiSuggestions: [],
+    });
+
+    // Create a map for quick lookups
+    const taskMap = new Map(allTasks.map(task => [task.id, task]));
+
+    // Sort the original tasks array based on the prioritized list
+    const sortedTasks = prioritizedItems.map(id => taskMap.get(id)).filter((task): task is Task => !!task);
+    
+    // Add any tasks that were not in the prioritized list to the end
+    const unprioritizedTasks = allTasks.filter(task => !prioritizedItems.includes(task.id));
+
+    return [...sortedTasks, ...unprioritizedTasks];
+}
+
+
+export default async function FocusInbox({ userId }: { userId: string}) {
+  
+  const prioritizedItems = await getFocusInboxItems(userId);
 
   return (
     <div>
@@ -35,17 +84,7 @@ export default async function FocusInbox() {
           prioritizedItems.map(item => (
             <TaskCard
               key={item.id}
-              task={{
-                taskId: item.relatedId,
-                title: item.title,
-                description: item.summary,
-                status: item.status,
-                circleId: 'N/A',
-                assignedBy: 'System',
-                assignedTo: 'user_admin',
-                media: [],
-                log: [{ timestamp: item.timestamp, action: 'flagged' }],
-              }}
+              task={item}
             />
           ))
         ) : (

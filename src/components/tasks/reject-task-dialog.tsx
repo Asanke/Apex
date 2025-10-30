@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Dialog,
@@ -39,7 +38,8 @@ export function RejectTaskDialog({ task }: { task: Task }) {
 
     try {
       const result = await rejectTask({
-        taskId: task.taskId,
+        taskId: task.id,
+        circleId: task.circleId,
         reason,
         taskDescription: task.description,
         overrideCode,
@@ -47,8 +47,8 @@ export function RejectTaskDialog({ task }: { task: Task }) {
 
       if (result.success) {
         toast({
-            title: "Task Rejected",
-            description: result.message,
+          title: 'Task Rejected',
+          description: result.message,
         });
         setOpen(false);
       } else {
@@ -107,7 +107,10 @@ export function RejectTaskDialog({ task }: { task: Task }) {
                   name="overrideCode"
                   placeholder="Enter code if you have one"
                 />
-                 <p className="text-xs text-muted-foreground">If the rejection is blocked, you can call the admin to get a temporary override code.</p>
+                <p className="text-xs text-muted-foreground">
+                  If the rejection is blocked, you can call the admin to get a
+                  temporary override code.
+                </p>
               </div>
             )}
           </div>

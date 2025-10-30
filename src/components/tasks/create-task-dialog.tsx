@@ -13,25 +13,29 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Plus } from 'lucide-react';
-import { getAIAssignmentSuggestion } from '@/lib/actions';
+import { getAIAssignmentSuggestion, createTask } from '@/lib/actions';
 import AssignTaskFlow from './assign-task-flow';
+import type { AssignTaskOutput } from '@/ai/ai-task-assignment';
+import { useUser } from '@/firebase';
 
-type Suggestion = {
-  bestFit: string;
-  reason: string;
-};
 
 export default function CreateTaskDialog({ circleId }: { circleId: string }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [taskTitle, setTaskTitle] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
-  const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
+  const [suggestion, setSuggestion] = useState<AssignTaskOutput | null>(null);
+  const { user } = useUser();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!user) return;
+    
     setIsLoading(true);
     const formData = new FormData(event.currentTarget);
+    const title = formData.get('title') as string;
     const description = formData.get('description') as string;
+    setTaskTitle(title);
     setTaskDescription(description);
 
     try {
@@ -48,11 +52,25 @@ export default function CreateTaskDialog({ circleId }: { circleId: string }) {
     }
   };
 
+  const handleAssignmentComplete = (assignedTo: string, overrideLog?: any) => {
+    if (!user) return;
+    createTask({
+      title: taskTitle,
+      description: taskDescription,
+      circleId,
+      assignedTo,
+      assignedBy: user.uid,
+      overrideLog
+    });
+    resetAndClose();
+  }
+
   const resetAndClose = () => {
     setSuggestion(null);
     setTaskDescription('');
+    setTaskTitle('');
     setOpen(false);
-  }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -88,12 +106,16 @@ export default function CreateTaskDialog({ circleId }: { circleId: string }) {
                 required
               />
             </div>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || !user}>
               {isLoading ? 'Analyzing...' : 'Get AI Suggestion'}
             </Button>
           </form>
         ) : (
-          <AssignTaskFlow suggestion={suggestion} onComplete={resetAndClose} />
+          <AssignTaskFlow 
+            suggestion={suggestion} 
+            onComplete={handleAssignmentComplete}
+            circleId={circleId}
+           />
         )}
       </DialogContent>
     </Dialog>

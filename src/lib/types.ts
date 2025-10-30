@@ -1,4 +1,7 @@
+import { Timestamp } from 'firebase/firestore';
+
 export type User = {
+  id: string;
   userId: string;
   email: string;
   name: string;
@@ -18,6 +21,7 @@ export type User = {
 };
 
 export type Circle = {
+  id: string;
   circleId: string;
   name: string;
   owner: string;
@@ -27,7 +31,7 @@ export type Circle = {
   }[];
 };
 
-export type TaskStatus = 
+export type TaskStatus =
   | 'pending_acceptance'
   | 'in_progress'
   | 'pending_review'
@@ -40,6 +44,7 @@ export type TaskStatus =
   | 'ai_suggestion'; // for AI suggestions in focus inbox
 
 export type Task = {
+  id: string;
   taskId: string;
   title: string;
   description: string;
@@ -48,6 +53,7 @@ export type Task = {
   assignedBy: string;
   assignedTo: string;
   status: TaskStatus;
+  createdAt: Timestamp;
   log: {
     timestamp: number;
     action: string;

@@ -1,3 +1,4 @@
+'use client';
 import type { Task } from '@/lib/types';
 import TaskCard from './task-card';
 
@@ -20,7 +21,7 @@ export default function TaskList({ tasks }: TaskListProps) {
   return (
     <div className="space-y-4">
       {tasks.map(task => (
-        <TaskCard key={task.taskId} task={task} />
+        <TaskCard key={task.id} task={task} />
       ))}
     </div>
   );
