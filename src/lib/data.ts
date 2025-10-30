@@ -5,7 +5,7 @@ export const mockUsers: User[] = [
     userId: 'user_admin',
     email: 'admin@apex.com',
     name: 'Admin',
-    avatarUrl: 'https://picsum.photos/seed/1/100/100',
+    avatarUrl: '/avatars/user_admin.jpg',
     role: 'admin',
     circles: ['circle_1', 'circle_2', 'circle_3', 'circle_4'],
     ai_profile: {
@@ -18,7 +18,7 @@ export const mockUsers: User[] = [
     userId: 'user_partner_1',
     email: 'partner1@apex.com',
     name: 'Brenda Smith',
-    avatarUrl: 'https://picsum.photos/seed/2/100/100',
+    avatarUrl: '/avatars/user_partner_1.jpg',
     role: 'partner',
     circles: ['circle_1'],
     ai_profile: {
@@ -38,7 +38,7 @@ export const mockUsers: User[] = [
     userId: 'user_staff_1',
     email: 'staff1@apex.com',
     name: 'John Doe',
-    avatarUrl: 'https://picsum.photos/seed/3/100/100',
+    avatarUrl: '/avatars/user_staff_1.jpg',
     role: 'staff_level_1',
     circles: ['circle_1'],
     ai_profile: {
@@ -51,7 +51,7 @@ export const mockUsers: User[] = [
     userId: 'user_partner_2',
     email: 'partner2@apex.com',
     name: 'Carlos Garcia',
-    avatarUrl: 'https://picsum.photos/seed/4/100/100',
+    avatarUrl: '/avatars/user_partner_2.jpg',
     role: 'partner',
     circles: ['circle_2'],
     ai_profile: {

@@ -7,6 +7,17 @@ import {
 import { mockUsers } from './data';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase';
+
+
+// IMPORTANT: This is a temporary solution to get unblocked.
+// The ideal solution is to use the Admin SDK in a secure environment.
+const getDb = () => {
+    const { firestore } = initializeFirebase();
+    return firestore;
+}
+
 
 const getAIAssignmentSuggestionSchema = z.object({
   taskDescription: z.string(),
@@ -77,5 +88,43 @@ export async function rejectTask(values: z.infer<typeof rejectTaskSchema>) {
     } else {
         console.log(`Task ${values.taskId} rejection is invalid.`);
         return { success: false, message: validation.feedback };
+    }
+}
+
+
+const createUserProfileSchema = z.object({
+  userId: z.string(),
+  email: z.string().email().nullable(),
+  name: z.string().nullable(),
+  avatarUrl: z.string().url().nullable(),
+});
+
+export async function createUserProfile(values: z.infer<typeof createUserProfileSchema>) {
+    const db = getDb();
+    const userRef = doc(db, 'users', values.userId);
+
+    try {
+        const userDoc = await getDoc(userRef);
+        if (!userDoc.exists()) {
+            await setDoc(userRef, {
+                email: values.email || '',
+                name: values.name || 'Anonymous User',
+                role: 'staff_level_1', // Default role
+                circles: [],
+                ai_profile: {
+                    expertise: [],
+                    success_rate: 0.0,
+                    rejection_overrides: [],
+                }
+            });
+            console.log(`Created user profile for ${values.userId}`);
+            return { success: true, message: 'User profile created.' };
+        } else {
+            // console.log(`User profile for ${values.userId} already exists.`);
+            return { success: true, message: 'User profile already exists.' };
+        }
+    } catch (error: any) {
+        console.error('Error creating user profile:', error);
+        return { success: false, message: error.message };
     }
 }
