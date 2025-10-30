@@ -5,7 +5,10 @@ import { useUser } from '@/firebase';
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
 
-  if (isUserLoading) {
+  // Debug mode - show dashboard even without authentication
+  const debugMode = true;
+
+  if (isUserLoading && !debugMode) {
     return (
         <div className="container mx-auto">
             <div className="animate-pulse">
@@ -21,7 +24,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user) {
+  if (!user && !debugMode) {
     return (
         <div className="container mx-auto text-center">
             <p>Please log in to see your dashboard.</p>
@@ -29,9 +32,16 @@ export default function DashboardPage() {
     )
   }
 
+  const userIdForDemo = user?.uid || 'demo-user-id';
+
   return (
     <div className="container mx-auto">
-      <FocusInbox userId={user.uid} />
+      {debugMode && !user && (
+        <div className="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded-lg">
+          <p className="text-yellow-800">🐛 Debug Mode: Running without authentication</p>
+        </div>
+      )}
+      <FocusInbox userId={userIdForDemo} />
     </div>
   );
 }

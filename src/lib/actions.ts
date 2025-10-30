@@ -45,42 +45,51 @@ const getAIAssignmentSuggestionSchema = z.object({
 export async function getAIAssignmentSuggestion(
   values: z.infer<typeof getAIAssignmentSuggestionSchema>
 ): Promise<AssignTaskOutput> {
-  const db = getDb();
-  const circleRef = doc(db, 'circles', values.circleId);
-  const circleDoc = await getDoc(circleRef);
+  try {
+    const db = getDb();
+    const circleRef = doc(db, 'circles', values.circleId);
+    const circleDoc = await getDoc(circleRef);
 
-  if (!circleDoc.exists()) {
-    throw new Error('Circle not found');
-  }
-
-  const circleData = circleDoc.data() as Circle;
-  const memberIds = circleData.members.map(m => m.userId);
-
-  const users: { userId: string; aiProfile: any }[] = [];
-  for (const userId of memberIds) {
-    const userRef = doc(db, 'users', userId);
-    const userDoc = await getDoc(userRef);
-    if (userDoc.exists()) {
-      const userData = userDoc.data() as User;
-      users.push({
-        userId: userDoc.id,
-        aiProfile: userData.ai_profile,
-      });
+    if (!circleDoc.exists()) {
+      throw new Error('Circle not found');
     }
+
+    const circleData = circleDoc.data() as Circle;
+    const memberIds = circleData.members.map(m => m.userId);
+
+    const users: { userId: string; aiProfile: any }[] = [];
+    for (const userId of memberIds) {
+      const userRef = doc(db, 'users', userId);
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
+        const userData = userDoc.data() as User;
+        users.push({
+          userId: userDoc.id,
+          aiProfile: userData.ai_profile,
+        });
+      }
+    }
+
+    const response = await assignTask({
+      taskDescription: values.taskDescription,
+      circleMembers: users.map(u => ({
+        userId: u.userId,
+        aiProfile: {
+          expertise: u.aiProfile.expertise || [],
+          successRate: u.aiProfile.success_rate || 0,
+        },
+      })),
+    });
+
+    return response;
+  } catch (error) {
+    console.error('AI assignment failed, using fallback:', error);
+    // Fallback to simple logic if AI fails
+    return {
+      bestFitUserId: 'fallback',
+      reason: 'AI assignment failed, manual assignment recommended'
+    };
   }
-
-  const response = await assignTask({
-    taskDescription: values.taskDescription,
-    circleMembers: users.map(u => ({
-      userId: u.userId,
-      aiProfile: {
-        expertise: u.aiProfile.expertise || [],
-        successRate: u.aiProfile.success_rate || 0,
-      },
-    })),
-  });
-
-  return response;
 }
 
 const createTaskSchema = z.object({

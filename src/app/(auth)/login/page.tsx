@@ -53,17 +53,31 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
+    console.log('Login page - user state:', { user: !!user, isUserLoading });
     if (!isUserLoading && user) {
+      console.log('Redirecting to dashboard...');
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
 
   const onSubmit = (data: LoginFormValues) => {
-    initiateEmailSignIn(auth, data.email, data.password);
+    console.log('Attempting email login with:', data.email);
+    try {
+      initiateEmailSignIn(auth, data.email, data.password);
+      console.log('Email login initiated');
+    } catch (error) {
+      console.error('Email login error:', error);
+    }
   };
 
   const handleAnonymousLogin = () => {
-    initiateAnonymousSignIn(auth);
+    console.log('Attempting anonymous login...');
+    try {
+      initiateAnonymousSignIn(auth);
+      console.log('Anonymous login initiated');
+    } catch (error) {
+      console.error('Anonymous login error:', error);
+    }
   };
 
   if (isUserLoading || user) {
@@ -134,6 +148,17 @@ export default function LoginPage() {
                 onClick={handleAnonymousLogin}
               >
                 Sign In Anonymously
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                onClick={() => {
+                  console.log('Force navigating to dashboard...');
+                  router.push('/dashboard');
+                }}
+              >
+                🐛 Debug: Go to Dashboard
               </Button>
             </CardFooter>
           </form>

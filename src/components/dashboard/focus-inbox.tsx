@@ -46,24 +46,31 @@ async function getFocusInboxItems(userId: string) {
         return [];
     }
     
-    const { prioritizedItems } = await prioritizeFocusInbox({
-        pendingApprovals: pendingReviewTasks.map(t => t.id),
-        aiIdentifiedBottlenecks: [], // This would come from another AI flow
-        changeRequests: [],
-        failureToReachAlerts: [],
-        aiSuggestions: [],
-    });
+    // Use AI prioritization with fallback
+    try {
+        const { prioritizedItems } = await prioritizeFocusInbox({
+            pendingApprovals: pendingReviewTasks.map(t => t.id),
+            aiIdentifiedBottlenecks: [], // This would come from another AI flow
+            changeRequests: [],
+            failureToReachAlerts: [],
+            aiSuggestions: [],
+        });
 
-    // Create a map for quick lookups
-    const taskMap = new Map(allTasks.map(task => [task.id, task]));
+        // Create a map for quick lookups
+        const taskMap = new Map(allTasks.map(task => [task.id, task]));
 
-    // Sort the original tasks array based on the prioritized list
-    const sortedTasks = prioritizedItems.map(id => taskMap.get(id)).filter((task): task is Task => !!task);
-    
-    // Add any tasks that were not in the prioritized list to the end
-    const unprioritizedTasks = allTasks.filter(task => !prioritizedItems.includes(task.id));
+        // Sort the original tasks array based on the prioritized list
+        const sortedTasks = prioritizedItems.map((id: string) => taskMap.get(id)).filter((task: Task | undefined): task is Task => !!task);
+        
+        // Add any tasks that were not in the prioritized list to the end
+        const unprioritizedTasks = allTasks.filter(task => !prioritizedItems.includes(task.id));
 
-    return [...sortedTasks, ...unprioritizedTasks];
+        return [...sortedTasks, ...unprioritizedTasks];
+    } catch (error) {
+        console.warn('AI prioritization failed, falling back to simple sort:', error);
+        // Return tasks sorted by creation date if AI fails
+        return allTasks.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
+    }
 }
 
 
