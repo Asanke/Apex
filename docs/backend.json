@@ -1,0 +1,307 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user in the Apex Command Center application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user. (Primary Key)"
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's display name."
+        },
+        "role": {
+          "type": "string",
+          "description": "Defines the user's permissions (e.g., admin, partner, staff_level_1, family)."
+        },
+        "circleIds": {
+          "type": "array",
+          "description": "References to Circles this user belongs to. (Relationship: User N:N Circle)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aiProfile": {
+          "type": "string",
+          "description": "AI-managed object for learning user behavior. This should likely be json rather than a string. Representing the entire profile as a string is likely not useful."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name",
+        "role",
+        "circleIds"
+      ]
+    },
+    "Circle": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Circle",
+      "type": "object",
+      "description": "Represents a workspace (Circle) in the Apex Command Center application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the circle. (Primary Key)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the circle (e.g., 'Infinity Cabinets')."
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Reference to User who is the admin of the circle. (Relationship: User 1:N Circle)"
+        },
+        "memberIds": {
+          "type": "array",
+          "description": "References to Users who are members of this Circle. (Relationship: User N:N Circle)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "ownerId",
+        "memberIds"
+      ]
+    },
+    "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task",
+      "type": "object",
+      "description": "Represents a task within a Circle.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the task. (Primary Key)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the task."
+        },
+        "circleId": {
+          "type": "string",
+          "description": "Reference to the Circle this task belongs to. (Relationship: Circle 1:N Task)"
+        },
+        "media": {
+          "type": "array",
+          "description": "URLs to files in Cloud Storage associated with this task.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assignedBy": {
+          "type": "string",
+          "description": "Reference to User who assigned the task. (Relationship: User 1:N Task)"
+        },
+        "assignedTo": {
+          "type": "string",
+          "description": "Reference to User to whom the task is assigned. (Relationship: User 1:N Task)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the task (e.g., pending_acceptance, in_progress, pending_review, completed, blocked, rejected_by_override)."
+        },
+        "log": {
+          "type": "string",
+          "description": "An audit trail of all actions. It would be better to represent this as a json array."
+        },
+        "overrideLog": {
+          "type": "string",
+          "description": "Logs when the Admin overrides an AI suggestion. It would be better to represent this as json."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "circleId",
+        "assignedBy",
+        "assignedTo",
+        "status"
+      ]
+    },
+    "AlertLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AlertLog",
+      "type": "object",
+      "description": "Represents a log entry for alerts sent to users.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the log entry. (Primary Key)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User who was alerted. (Relationship: User 1:N AlertLog)"
+        },
+        "taskId": {
+          "type": "string",
+          "description": "Reference to Task for which the alert was sent. (Relationship: Task 1:N AlertLog)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the alert (e.g., sent)."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp of when the alert was sent.",
+          "format": "date-time"
+        },
+        "attemptCount": {
+          "type": "number",
+          "description": "Number of times the alert has been attempted."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "taskId",
+        "status",
+        "timestamp",
+        "attemptCount"
+      ]
+    },
+    "OverrideCode": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OverrideCode",
+      "type": "object",
+      "description": "Represents an override code generated by an admin.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the override code. (Primary Key)"
+        },
+        "code": {
+          "type": "string",
+          "description": "The override code (e.g., '4158')."
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "Reference to User (Admin) who created the code. (Relationship: User 1:N OverrideCode)"
+        },
+        "expires": {
+          "type": "string",
+          "description": "Expiration timestamp for the code.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "code",
+        "createdBy",
+        "expires"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. The document ID is the Firebase Auth UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique ID of the user, matching the Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/circles/{circleId}",
+        "definition": {
+          "entityName": "Circle",
+          "schema": {
+            "$ref": "#/backend/entities/Circle"
+          },
+          "description": "Stores circle information, including the owner and members. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "circleId",
+              "description": "The unique ID of the circle."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/circles/{circleId}/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Stores tasks associated with a specific circle. Includes denormalized 'members' map for authorization independence.",
+          "params": [
+            {
+              "name": "circleId",
+              "description": "The unique ID of the circle."
+            },
+            {
+              "name": "taskId",
+              "description": "The unique ID of the task."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/alert_logs/{alertLogId}",
+        "definition": {
+          "entityName": "AlertLog",
+          "schema": {
+            "$ref": "#/backend/entities/AlertLog"
+          },
+          "description": "Stores alert logs for tasks.",
+          "params": [
+            {
+              "name": "alertLogId",
+              "description": "The unique ID of the alert log."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/override_codes/{overrideCodeId}",
+        "definition": {
+          "entityName": "OverrideCode",
+          "schema": {
+            "$ref": "#/backend/entities/OverrideCode"
+          },
+          "description": "Stores override codes generated by admins.",
+          "params": [
+            {
+              "name": "overrideCodeId",
+              "description": "The unique ID of the override code."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure is designed to support the Apex Command Center application, emphasizing security, scalability, and debuggability. The design prioritizes Authorization Independence using denormalization, supports the required QAPs (using segregation and membership models), and enables simple, robust security rules.\n\n**Authorization Independence:**\n*   **Circles:** The `circles` collection stores circle data and includes a `members` map (denormalized) that lists all users and their roles within that circle. This denormalization is CRUCIAL because it avoids the need for `get()` calls to parent documents to check circle membership, enabling atomic operations and simplifying security rules.\n*   **Tasks:** Similarly, tasks are stored within circle-specific subcollections (`/circles/{circleId}/tasks/{taskId}`). To maintain Authorization Independence, each task document MUST include a denormalized `members` map, mirroring the `circles` document. This way, a user's access to a task can be determined solely from the task document itself.\n*   **AlertLogs:** Each `alert_log` document contains the `userId` directly which allows direct rules without needing to check parent documents.\n*   **OverrideCodes:** The `createdBy` field contains the `userId` for the admin, allowing direct rules without needing to check parent documents.\n\n**Structural Segregation & QAPs:**\n*   **Circles as Root Collections:** Circles are stored as root collections to allow easier listing of all circles in the system without the need for complex collection group queries.\n*   **Tasks as Subcollections:** Tasks are stored within circle-specific subcollections (`/circles/{circleId}/tasks/{taskId}`) to ensure data isolation. This structure inherently supports secure `list` operations (QAPs) because access control can be applied at the collection level. A user can only list tasks within a circle if they are a member of that circle.\n*   **User Roles:** User roles (`admin`, `partner`, `staff_level_1`, `family`) are stored directly in the user document, as well as within the `circles/{circleId}` document in the `members` map.  This enables role-based access control within circles.\n\n**Invariants:**\n*   The data structure supports invariants like ownership (via the `ownerId` in the `circles` collection) and timestamps (e.g., in `alert_logs`). It also facilitates the maintenance of denormalized data, as Cloud Functions can be used to update the `members` map in both the `circles` and `tasks` collections whenever membership changes occur."
+  }
+}

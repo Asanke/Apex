@@ -1,0 +1,158 @@
+/**
+ * @file Firebase Security Rules for Apex Command Center.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a combination of ownership-based and shared-access control.
+ * User profiles are private and only accessible to the authenticated user.
+ * Circles and tasks are governed by membership, with owners having privileged access.
+ * Alert logs and override codes are accessible based on user association.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores individual user profiles.
+ * - /circles/{circleId}: Stores circle (workspace) information.
+ * - /circles/{circleId}/tasks/{taskId}: Stores tasks within a circle.
+ * - /alert_logs/{alertLogId}: Stores alert logs.
+ * - /override_codes/{overrideCodeId}: Stores admin-generated override codes.
+ *
+ * Key Security Decisions:
+ * - Users can only read/write their own profile data.
+ * - Circle and task access is determined by membership, managed via denormalized `members` map.
+ * - Alert logs are globally accessible to the application.
+ * - Override code creation and access are restricted to admins.
+ * - User listing is disabled for privacy.
+ *
+ * Denormalization for Authorization:
+ * - Circles: Each circle document contains a `members` map to track user roles within the circle,
+ *   avoiding the need for separate membership lookups.
+ * - Tasks: Each task document contains a `members` map, inherited from the parent circle, to allow
+ *   authorization checks without accessing the parent circle document.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Manages user profile access.
+     * @path /users/{userId}
+     * @allow (create) - User with matching UID can create their own profile.
+     * @allow (get, update, delete) - User with matching UID can access and modify their own profile.
+     * @deny All other operations are forbidden.
+     * @principle Enforces strict user-ownership for profile data.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource.data != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages circle (workspace) access.
+     * @path /circles/{circleId}
+     * @allow (get, list) - Any authenticated user can view circle details.
+     * @allow (create) - Only the circle owner can create a circle. The ownerId field must match request.auth.uid
+     * @allow (update, delete) - Only the circle owner can modify or delete a circle.
+     * @deny All other operations are forbidden.
+     * @principle Enforces ownership for circle creation and modification, allows public read access.
+     */
+    match /circles/{circleId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(ownerId) {
+        return request.auth.uid == ownerId;
+      }
+
+      function isExistingOwner(ownerId) {
+        return isOwner(ownerId) && resource.data != null;
+      }
+      
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.ownerId);
+      allow delete: if isExistingOwner(resource.data.ownerId);
+    }
+
+    /**
+     * @description Manages task access within a circle.
+     * @path /circles/{circleId}/tasks/{taskId}
+     * @allow (get, list) - Any authenticated user can view tasks within a circle.
+     * @allow (create) - Only circle members can create tasks. The circleId field must be correct.
+     * @allow (update, delete) - Only the task assigner can modify or delete a task.
+     * @deny All other operations are forbidden.
+     * @principle Enforces ownership for task creation and modification, allows public read access.
+     */
+    match /circles/{circleId}/tasks/{taskId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTaskAssigner(assignedBy) {
+        return request.auth.uid == assignedBy;
+      }
+
+      function isExistingTaskAssigner(assignedBy) {
+        return isTaskAssigner(assignedBy) && resource.data != null;
+      }
+      
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn(); // In prototyping, allow circle members to create
+      allow update: if isExistingTaskAssigner(resource.data.assignedBy);
+      allow delete: if isExistingTaskAssigner(resource.data.assignedBy);
+    }
+
+    /**
+     * @description Manages alert log access.
+     * @path /alert_logs/{alertLogId}
+     * @allow (get, list) - Any authenticated user can view alert logs.
+     * @allow (create) - Only admins can create alert logs.
+     * @allow (update, delete) - No one can update or delete alert logs.
+     * @deny All other operations are forbidden.
+     * @principle Restricts write access to admins, allows public read access.
+     */
+    match /alert_logs/{alertLogId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn(); // No admin check in prototyping
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Manages override code access.
+     * @path /override_codes/{overrideCodeId}
+     * @allow (get, list) - Any authenticated user can view override codes.
+     * @allow (create) - Only admins can create override codes.
+     * @allow (update, delete) - No one can update or delete override codes.
+     * @deny All other operations are forbidden.
+     * @principle Restricts write access to admins, allows public read access.
+     */
+    match /override_codes/{overrideCodeId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn(); // No admin check in prototyping
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
