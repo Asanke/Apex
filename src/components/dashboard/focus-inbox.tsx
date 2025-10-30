@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { prioritizeFocusInbox } from '@/ai/flows/focus-inbox-prioritization';
 import TaskCard from '../tasks/task-card';
-import { useFirestore } from '@/firebase';
+import { db } from '@/firebase/config';
 import { collectionGroup, getDocs, query, where } from 'firebase/firestore';
 import type { Task } from '@/lib/types';
 
@@ -138,7 +138,6 @@ async function getFocusInboxItems(firestore: any, userId: string): Promise<Task[
 
 
 export default function FocusInbox({ userId }: { userId: string}) {
-  const firestore = useFirestore();
   const [prioritizedItems, setPrioritizedItems] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -146,7 +145,7 @@ export default function FocusInbox({ userId }: { userId: string}) {
     async function loadFocusInboxItems() {
       try {
         setIsLoading(true);
-        const items = await getFocusInboxItems(firestore, userId);
+        const items = await getFocusInboxItems(db, userId);
         setPrioritizedItems(items);
       } catch (error) {
         console.error('Error loading focus inbox items:', error);
@@ -157,7 +156,7 @@ export default function FocusInbox({ userId }: { userId: string}) {
     }
 
     loadFocusInboxItems();
-  }, [firestore, userId]);
+  }, [userId]);
 
   if (isLoading) {
     return (

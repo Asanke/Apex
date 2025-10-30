@@ -12,8 +12,9 @@ import StatusIndicator from './status-indicator';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 import { TaskActions } from './task-actions';
-import { useDoc, useFirestore } from '@/firebase';
+import { useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { db } from '@/firebase/config';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useMemo } from 'react';
 
@@ -22,8 +23,6 @@ interface TaskCardProps {
 }
 
 export default function TaskCard({ task }: TaskCardProps) {
-  const firestore = useFirestore();
-
   // Mock user data fallback
   const mockUsers: Record<string, { name: string; id: string }> = {
     'user_partner_1': { name: 'Brenda Smith', id: 'user_partner_1' },
@@ -33,13 +32,13 @@ export default function TaskCard({ task }: TaskCardProps) {
   };
 
   const assignedToUserRef = useMemo(() => {
-    if (!task.assignedTo || !firestore) return null;
+    if (!task.assignedTo || !db) return null;
     try {
-      return doc(firestore, 'users', task.assignedTo);
+      return doc(db, 'users', task.assignedTo);
     } catch {
       return null;
     }
-  }, [firestore, task.assignedTo]);
+  }, [task.assignedTo]);
 
   const { data: assignedToUser } = useDoc<User>(assignedToUserRef);
 
