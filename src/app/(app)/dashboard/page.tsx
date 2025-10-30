@@ -5,10 +5,10 @@ import { useUser } from '@/firebase';
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
 
-  // Optional authentication - works with or without auth
-  const skipAuth = !user && process.env.NODE_ENV === 'development';
+  // Production-ready: Firebase in production, fallback in development
+  const useFirebase = process.env.NODE_ENV === 'production';
 
-  if (isUserLoading && !skipAuth) {
+  if (isUserLoading && useFirebase) {
     return (
         <div className="container mx-auto">
             <div className="animate-pulse">
@@ -24,7 +24,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!user && !skipAuth) {
+  if (!user && useFirebase) {
     return (
         <div className="container mx-auto text-center">
             <p>Please log in to see your dashboard.</p>
@@ -36,9 +36,9 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto">
-      {skipAuth && (
+      {!useFirebase && (
         <div className="mb-4 p-4 bg-blue-100 border border-blue-400 rounded-lg">
-          <p className="text-blue-800">🔧 Development Mode: Using mock data (Firebase available for production)</p>
+          <p className="text-blue-800">� Demo Mode: Using sample data for demonstration</p>
         </div>
       )}
       <FocusInbox userId={userIdForDemo} />

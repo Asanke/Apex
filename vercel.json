@@ -1,7 +1,5 @@
 {
   "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
   "framework": "nextjs",
   "env": {
     "GOOGLE_GENAI_API_KEY": "@google-genai-api-key"
@@ -10,5 +8,11 @@
     "env": {
       "GOOGLE_GENAI_API_KEY": "@google-genai-api-key"
     }
-  }
+  },
+  "functions": {
+    "app/**": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"]
 }
