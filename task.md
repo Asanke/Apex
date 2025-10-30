@@ -3,8 +3,8 @@
 ## Phase 1: Project Foundation & Setup
 
 *   [x] Task 1: Initialize Firebase Project
-*   [ ] Task 2: Frontend PWA Scaffolding
-*   [ ] Task 3: UI/UX Foundation
+*   [x] Task 2: Frontend PWA Scaffolding
+*   [x] Task 3: UI/UX Foundation
 
 ---
 
@@ -48,3 +48,4 @@
 
 *   [ ] Task 20: Implement Security Rules
 *   [ ] Task 21: Final Deployment
+
