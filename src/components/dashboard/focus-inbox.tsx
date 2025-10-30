@@ -1,15 +1,13 @@
-'use server';
+'use client';
 
+import { useState, useEffect } from 'react';
 import { prioritizeFocusInbox } from '@/ai/flows/focus-inbox-prioritization';
 import TaskCard from '../tasks/task-card';
-import { initializeFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { collectionGroup, getDocs, query, where } from 'firebase/firestore';
 import type { Task } from '@/lib/types';
-import { get } from 'http';
 
-async function getFocusInboxItems(userId: string) {
-    const { firestore } = initializeFirebase();
-
+async function getFocusInboxItems(firestore: any, userId: string) {
     const pendingReviewQuery = query(
         collectionGroup(firestore, 'tasks'),
         where('status', '==', 'pending_review'),
@@ -74,9 +72,45 @@ async function getFocusInboxItems(userId: string) {
 }
 
 
-export default async function FocusInbox({ userId }: { userId: string}) {
-  
-  const prioritizedItems = await getFocusInboxItems(userId);
+export default function FocusInbox({ userId }: { userId: string}) {
+  const firestore = useFirestore();
+  const [prioritizedItems, setPrioritizedItems] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadFocusInboxItems() {
+      if (!firestore || !userId) return;
+      
+      try {
+        setIsLoading(true);
+        const items = await getFocusInboxItems(firestore, userId);
+        setPrioritizedItems(items);
+      } catch (error) {
+        console.error('Error loading focus inbox items:', error);
+        setPrioritizedItems([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadFocusInboxItems();
+  }, [firestore, userId]);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto">
+        <div className="animate-pulse">
+          <div className="h-8 w-1/3 bg-muted rounded-md mb-2"></div>
+          <div className="h-4 w-1/2 bg-muted rounded-md mb-6"></div>
+          <div className="space-y-4">
+            <div className="h-24 bg-muted rounded-lg"></div>
+            <div className="h-24 bg-muted rounded-lg"></div>
+            <div className="h-24 bg-muted rounded-lg"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
