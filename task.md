@@ -2,7 +2,7 @@
 
 ## Phase 1: Project Foundation & Setup
 
-*   [ ] Task 1: Initialize Firebase Project
+*   [x] Task 1: Initialize Firebase Project
 *   [ ] Task 2: Frontend PWA Scaffolding
 *   [ ] Task 3: UI/UX Foundation
 
