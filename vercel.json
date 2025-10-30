@@ -1,0 +1,14 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "env": {
+    "GOOGLE_GENAI_API_KEY": "@google-genai-api-key"
+  },
+  "build": {
+    "env": {
+      "GOOGLE_GENAI_API_KEY": "@google-genai-api-key"
+    }
+  }
+}

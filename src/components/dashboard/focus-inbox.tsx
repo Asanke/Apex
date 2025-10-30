@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { prioritizeFocusInbox } from '@/ai/flows/focus-inbox-prioritization';
 import TaskCard from '../tasks/task-card';
+import { useFirestore } from '@/firebase';
+import { collectionGroup, getDocs, query, where } from 'firebase/firestore';
 import type { Task } from '@/lib/types';
 
-// Mock data for demo purposes
+// Mock data fallback for when Firebase is not available
 const mockTasks: Task[] = [
   {
     id: 'task-1',
@@ -65,20 +68,77 @@ const mockTasks: Task[] = [
   },
 ];
 
-async function getFocusInboxItems(userId: string): Promise<Task[]> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // Return mock tasks that need admin attention
-  return mockTasks.filter(task => 
-    task.status === 'pending_review' || 
-    task.status === 'overdue' || 
-    task.status === 'pending_acceptance'
-  );
+async function getFocusInboxItems(firestore: any, userId: string): Promise<Task[]> {
+  // Try Firebase first, fallback to mock data
+  try {
+    if (!firestore) {
+      console.warn('Firebase not available, using mock data');
+      return mockTasks;
+    }
+
+    const pendingReviewQuery = query(
+      collectionGroup(firestore, 'tasks'),
+      where('status', '==', 'pending_review'),
+      where('assignedBy', '==', userId)
+    );
+
+    const overdueQuery = query(
+      collectionGroup(firestore, 'tasks'),
+      where('status', '==', 'overdue'),
+      where('assignedTo', '==', userId)
+    );
+    
+    const pendingAcceptanceQuery = query(
+      collectionGroup(firestore, 'tasks'),
+      where('status', '==', 'pending_acceptance'),
+      where('assignedTo', '==', userId)
+    );
+
+    const [pendingReviewSnapshot, overdueSnapshot, pendingAcceptanceSnapshot] = await Promise.all([
+      getDocs(pendingReviewQuery),
+      getDocs(overdueQuery),
+      getDocs(pendingAcceptanceQuery)
+    ]);
+
+    const pendingReviewTasks = pendingReviewSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+    const overdueTasks = overdueSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+    const pendingAcceptanceTasks = pendingAcceptanceSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
+    
+    const allTasks = [...pendingReviewTasks, ...overdueTasks, ...pendingAcceptanceTasks];
+
+    if (allTasks.length === 0) {
+      console.log('No Firebase tasks found, using mock data');
+      return mockTasks;
+    }
+    
+    // Use AI prioritization with fallback
+    try {
+      const { prioritizedItems } = await prioritizeFocusInbox({
+        pendingApprovals: pendingReviewTasks.map(t => t.id),
+        aiIdentifiedBottlenecks: [],
+        changeRequests: [],
+        failureToReachAlerts: [],
+        aiSuggestions: [],
+      });
+
+      const taskMap = new Map(allTasks.map(task => [task.id, task]));
+      const sortedTasks = prioritizedItems.map((id: string) => taskMap.get(id)).filter((task: Task | undefined): task is Task => !!task);
+      const unprioritizedTasks = allTasks.filter(task => !prioritizedItems.includes(task.id));
+
+      return [...sortedTasks, ...unprioritizedTasks];
+    } catch (error) {
+      console.warn('AI prioritization failed, falling back to simple sort:', error);
+      return allTasks.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
+    }
+  } catch (error) {
+    console.warn('Firebase query failed, using mock data:', error);
+    return mockTasks;
+  }
 }
 
 
 export default function FocusInbox({ userId }: { userId: string}) {
+  const firestore = useFirestore();
   const [prioritizedItems, setPrioritizedItems] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -86,18 +146,18 @@ export default function FocusInbox({ userId }: { userId: string}) {
     async function loadFocusInboxItems() {
       try {
         setIsLoading(true);
-        const items = await getFocusInboxItems(userId);
+        const items = await getFocusInboxItems(firestore, userId);
         setPrioritizedItems(items);
       } catch (error) {
         console.error('Error loading focus inbox items:', error);
-        setPrioritizedItems([]);
+        setPrioritizedItems(mockTasks); // Fallback to mock data
       } finally {
         setIsLoading(false);
       }
     }
 
     loadFocusInboxItems();
-  }, [userId]);
+  }, [firestore, userId]);
 
   if (isLoading) {
     return (

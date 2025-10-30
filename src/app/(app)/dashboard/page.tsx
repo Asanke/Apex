@@ -5,8 +5,8 @@ import { useUser } from '@/firebase';
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
 
-  // Skip authentication entirely for now
-  const skipAuth = true;
+  // Optional authentication - works with or without auth
+  const skipAuth = !user && process.env.NODE_ENV === 'development';
 
   if (isUserLoading && !skipAuth) {
     return (
@@ -36,9 +36,9 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto">
-      {skipAuth && !user && (
-        <div className="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded-lg">
-          <p className="text-yellow-800">� Auth Disabled: Demo mode - using mock data</p>
+      {skipAuth && (
+        <div className="mb-4 p-4 bg-blue-100 border border-blue-400 rounded-lg">
+          <p className="text-blue-800">🔧 Development Mode: Using mock data (Firebase available for production)</p>
         </div>
       )}
       <FocusInbox userId={userIdForDemo} />

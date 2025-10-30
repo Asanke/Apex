@@ -22,7 +22,9 @@ interface TaskCardProps {
 }
 
 export default function TaskCard({ task }: TaskCardProps) {
-  // Mock user data for demo
+  const firestore = useFirestore();
+
+  // Mock user data fallback
   const mockUsers: Record<string, { name: string; id: string }> = {
     'user_partner_1': { name: 'Brenda Smith', id: 'user_partner_1' },
     'user_staff_1': { name: 'John Doe', id: 'user_staff_1' },
@@ -30,9 +32,21 @@ export default function TaskCard({ task }: TaskCardProps) {
     'user_admin': { name: 'Admin', id: 'user_admin' },
   };
 
-  const assignedToUser = task.assignedTo ? mockUsers[task.assignedTo] : null;
+  const assignedToUserRef = useMemo(() => {
+    if (!task.assignedTo || !firestore) return null;
+    try {
+      return doc(firestore, 'users', task.assignedTo);
+    } catch {
+      return null;
+    }
+  }, [firestore, task.assignedTo]);
+
+  const { data: assignedToUser } = useDoc<User>(assignedToUserRef);
+
+  // Use Firebase data if available, otherwise fallback to mock data
+  const userForDisplay = assignedToUser || (task.assignedTo ? mockUsers[task.assignedTo] : null);
   const lastActivity = task.log?.length > 0 ? task.log[task.log.length - 1].timestamp : (task.createdAt?.toDate() || Date.now());
-  const userImage = PlaceHolderImages.find(img => img.id === assignedToUser?.id)?.imageUrl;
+  const userImage = PlaceHolderImages.find(img => img.id === userForDisplay?.id)?.imageUrl;
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -47,11 +61,11 @@ export default function TaskCard({ task }: TaskCardProps) {
               {task.description}
             </CardDescription>
           </div>
-          {assignedToUser && (
+          {userForDisplay && (
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={userImage} alt={assignedToUser.name} />
-                <AvatarFallback>{assignedToUser.name?.charAt(0)}</AvatarFallback>
+                <AvatarImage src={userImage} alt={userForDisplay.name} />
+                <AvatarFallback>{userForDisplay.name?.charAt(0)}</AvatarFallback>
               </Avatar>
             </div>
           )}

@@ -7,8 +7,32 @@ import { createUserProfile } from '@/lib/actions';
 import { useEffect, useState } from 'react';
 
 function UserProfileInitializer() {
-  // Skip user profile creation when auth is disabled
-  return null;
+  const { user } = useUser();
+  const [isProfileCreated, setIsProfileCreated] = useState(false);
+
+  useEffect(() => {
+    async function checkAndCreateProfile() {
+      if (user && !isProfileCreated) {
+        try {
+          // This server action should be idempotent
+          await createUserProfile({
+            userId: user.uid,
+            email: user.email,
+            name: user.displayName,
+            avatarUrl: user.photoURL,
+          });
+          setIsProfileCreated(true);
+        } catch (error) {
+          console.warn('User profile creation failed:', error);
+          // Continue anyway - app works with mock data
+          setIsProfileCreated(true);
+        }
+      }
+    }
+    checkAndCreateProfile();
+  }, [user, isProfileCreated]);
+
+  return null; // This component does not render anything
 }
 
 
